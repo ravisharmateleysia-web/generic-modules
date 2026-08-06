@@ -3,6 +3,10 @@ rg = {
     name     = "rv1"
     location = "eastus"
   }
+   rg2 = {
+    name     = "rv2"
+    location = "eastus"
+  }
 }
 
 vnet = {
