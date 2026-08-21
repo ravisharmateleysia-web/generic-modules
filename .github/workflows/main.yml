@@ -32,5 +32,3 @@ jobs:
         run: terraform plan
       - name: Terraform Apply
         run: terraform apply -auto-approve
-          fc
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
