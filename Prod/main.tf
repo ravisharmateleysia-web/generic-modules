@@ -3,13 +3,6 @@ module "rg" {
   rg     = var.rg
 }
 
-// Added variable declaration to fix missing var.nic
-variable "nic" {
-  description = "Network interface configuration for VM module"
-  type        = any
-  default     = {}
-}
-
 module "vnet" {
   source = "../modules/vnet"
   vnet   = var.vnet
