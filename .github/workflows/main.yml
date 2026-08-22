@@ -24,14 +24,14 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Init
-        working-directory: ./prod
+        working-directory: ./Prod
         run: terraform init
       - name: Terraform Validate
-        working-directory: ./prod
+        working-directory: ./Prod
         run: terraform validate
       - name: Terraform Plan
-        working-directory: ./prod
+        working-directory: ./Prod
         run: terraform plan
       - name: Terraform Apply
-        working-directory: ./prod
+        working-directory: ./Prod
         run: terraform apply -auto-approve
