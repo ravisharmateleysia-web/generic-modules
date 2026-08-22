@@ -37,18 +37,6 @@ variable "public_ip" {
   default = {}
 }
 
-variable "nic" {
-  type = map(object({
-    subnet_name          = string
-    nic_name             = string
-    location             = string
-    resource_group_name  = string
-    subnet_id            = string
-    virtual_network_name = string
-  }))
-  default = {}
-}
-
 variable "vms" {
   type = map(object({
     name                  = string
