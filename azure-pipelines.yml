@@ -1,19 +1,110 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+  branches:
+    include:
+      - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: 'vistara' # Your self-hosted agent pool
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  # Azure Resource Manager Service Connection configured in Project Settings
+  azureServiceConnection: 'azure-service-connection-name'
+  
+  # Backend Storage details for Terraform remote state
+  backendResourceGroup: 'tfstate-rg'
+  backendStorageAccount: 'tfstatestorageacct'
+  backendContainer: 'tfstate'
+  backendKey: 'vistara.terraform.tfstate'
+  
+  # Path to your Terraform files relative to repo root
+  workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+  terraformVersion: '1.8.5'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+- stage: BuildAndPlan
+  displayName: 'Terraform Init, Validate & Plan'
+  jobs:
+  - job: Plan
+    displayName: 'Generate Execution Plan'
+    steps:
+    - task: TerraformInstaller@0
+      displayName: 'Install Terraform'
+      inputs:
+        terraformVersion: '$(terraformVersion)'
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: '$(workingDirectory)'
+        backendServiceArm: '$(azureServiceConnection)'
+        backendAzureRmResourceGroupName: '$(backendResourceGroup)'
+        backendAzureRmStorageAccountName: '$(backendStorageAccount)'
+        backendAzureRmContainerName: '$(backendContainer)'
+        backendAzureRmBlobStorageKey: '$(backendKey)'
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Validate'
+      inputs:
+        provider: 'azurerm'
+        command: 'validate'
+        workingDirectory: '$(workingDirectory)'
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Plan'
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: '$(workingDirectory)'
+        environmentServiceNameAzureRM: '$(azureServiceConnection)'
+        commandOptions: '-out=$(Build.ArtifactStagingDirectory)/tfplan'
+
+    - publish: $(Build.ArtifactStagingDirectory)/tfplan
+      artifact: tfplan
+      displayName: 'Publish Plan Artifact'
+
+- stage: Deploy
+  displayName: 'Terraform Apply'
+  dependsOn: BuildAndPlan
+  condition: succeeded()
+  jobs:
+  - deployment: Apply
+    displayName: 'Apply Infrastructure Changes'
+    # Define an environment in Azure DevOps -> Pipelines -> Environments to add approval gates
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: TerraformInstaller@0
+            displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: '$(terraformVersion)'
+
+          - download: current
+            artifact: tfplan
+            displayName: 'Download Plan Artifact'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Init'
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(workingDirectory)'
+              backendServiceArm: '$(azureServiceConnection)'
+              backendAzureRmResourceGroupName: '$(backendResourceGroup)'
+              backendAzureRmStorageAccountName: '$(backendStorageAccount)'
+              backendAzureRmContainerName: '$(backendContainer)'
+              backendAzureRmBlobStorageKey: '$(backendKey)'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Apply'
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '$(workingDirectory)'
+              environmentServiceNameAzureRM: '$(azureServiceConnection)'
+              commandOptions: '$(Pipeline.Workspace)/tfplan/tfplan'
