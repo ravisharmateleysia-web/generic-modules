@@ -4,7 +4,7 @@ trigger:
       - main
 
 pool:
-  name: 'vistara' # Your self-hosted agent pool
+  name: 'hacker' # Your self-hosted agent pool
 
 variables:
   # Azure Resource Manager Service Connection configured in Project Settings
@@ -14,7 +14,7 @@ variables:
   backendResourceGroup: 'tfstate-rg'
   backendStorageAccount: 'tfstatestorageacct'
   backendContainer: 'tfstate'
-  backendKey: 'vistara.terraform.tfstate'
+  backendKey: 'hacker.terraform.tfstate'
   
   # Path to your Terraform files relative to repo root
   workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
